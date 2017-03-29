@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -87,6 +89,29 @@ func submoduleUpdate(dir string) error {
 	return cmd.Run()
 }
 
+func mergedBranches(out io.Writer, dir, root string) ([]string, error) {
+	var buf bytes.Buffer
+	cmd := exec.Command("git", "branch", "--merged", root)
+	cmd.Dir = dir
+	cmd.Stdout = &buf
+	cmd.Stderr = out
+	if err := cmd.Run(); err != nil {
+		return nil, err
+	}
+	var branches []string
+	for _, line := range bytes.Split(buf.Bytes(), []byte{'\n'}) {
+		bs := bytes.TrimSpace(line)
+		if len(bs) == 0 {
+			continue
+		}
+		if bs[0] == '*' {
+			continue
+		}
+		branches = append(branches, string(bs))
+	}
+	return branches, nil
+}
+
 func runMerge(cmd *cobra.Command, args []string) error {
 	if err := viper.BindPFlags(cmd.Flags()); err != nil {
 		return err
@@ -111,13 +136,13 @@ func runMerge(cmd *cobra.Command, args []string) error {
 
 		seen[wt.Repo] = true
 
-		if viper.GetBool("pruneLocal") {
+		if viper.GetBool("prune-local") {
 			if err := pruneLocal(dir, roots); err != nil {
 				return err
 			}
 		}
 
-		if len(wt.DirtyFiles) != 0 && !viper.GetBool("ignoreDirty") {
+		if len(wt.DirtyFiles) != 0 && !viper.GetBool("ignore-dirty") {
 			continue
 		}
 
@@ -147,7 +172,7 @@ func init() {
 	flags := c.Flags()
 
 	RootCmd.AddCommand(c)
-	flags.Bool("ignoreDirty", false, "Ignore dirty working directory when merging")
-	flags.String("mainBranches", "master,stable", "comma-separated list of branches to treat as roots for pruneLocal")
-	flags.Bool("pruneLocal", false, "Remove local branches that have been merged with origin/{mainBranches}")
+	flags.Bool("ignore-dirty", false, "Ignore dirty working directory when merging")
+	flags.String("main-branches", "master,stable", "comma-separated list of branches to treat as roots for prune-local")
+	flags.Bool("prune-local", false, "Remove local branches that have been merged with origin/{main-branches}")
 }

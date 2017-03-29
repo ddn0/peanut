@@ -2,30 +2,27 @@ package cmd
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"os/exec"
 	"path/filepath"
 
-	"github.com/ddn0/peanut/git"
 	"github.com/ddn0/peanut/logwriter"
 	"github.com/ddn0/peanut/pdo"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-var fetchCmd = &cobra.Command{
-	Use:   "fetch",
-	Short: "fetch remote git repo data",
-	RunE:  runFetch,
+var foreachCmd = &cobra.Command{
+	Use:   "foreach [args] [--] <command>",
+	Short: "execute a command in each directory",
+	RunE:  runForeach,
 }
 
-func fetch(ctx context.Context, item interface{}) error {
+func spawn(ctx context.Context, item interface{}, args []string) error {
 	dir := item.(string)
 
 	lw := logwriter.NewColorWriter(filepath.Base(dir))
 	defer lw.Flush()
-	cmd := exec.Command("git", "fetch", "--all", "--prune")
+	cmd := exec.Command(args[0], args[1:]...)
 	cmd.Dir = dir
 	cmd.Stdout = lw
 	cmd.Stderr = lw
@@ -35,10 +32,6 @@ func fetch(ctx context.Context, item interface{}) error {
 			cmd.Process.Kill()
 		}
 	}()
-
-	if viper.GetBool("verbose") {
-		fmt.Fprintln(lw, "fetching")
-	}
 
 	errs := make(chan error, 1)
 	go func() {
@@ -53,9 +46,13 @@ func fetch(ctx context.Context, item interface{}) error {
 	}
 }
 
-func runFetch(cmd *cobra.Command, args []string) error {
+func runForeach(cmd *cobra.Command, args []string) error {
 	if err := viper.BindPFlags(cmd.Flags()); err != nil {
 		return err
+	}
+
+	if len(args) == 0 {
+		return nil
 	}
 
 	cfg, err := readConf()
@@ -63,25 +60,15 @@ func runFetch(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	gc := git.NewClient(nil)
-
-	seen := make(map[string]bool)
 	var dirs []interface{}
 	for _, dir := range cfg.RepoPaths() {
-		wt, err := gc.WorkTree(dir)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "warn: error reading git work tree of %q: %s\n", dir, err)
-			return err
-		}
-		if seen[wt.Repo] {
-			continue
-		}
-		seen[wt.Repo] = true
-		dirs = append(dirs, wt.Repo)
+		dirs = append(dirs, dir)
 	}
 
 	if err := pdo.DoAll(pdo.DoAllOpt{
-		Func:          fetch,
+		Func: func(ctx context.Context, item interface{}) error {
+			return spawn(ctx, item, args)
+		},
 		Items:         dirs,
 		Timeout:       viper.GetDuration("timeout"),
 		MaxConcurrent: viper.GetInt("max-concurrent"),
@@ -89,10 +76,12 @@ func runFetch(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	return nil
+
+	return writeConf(cfg)
 }
 
 func init() {
-	c := fetchCmd
+	c := foreachCmd
 	//flags := c.Flags()
 
 	RootCmd.AddCommand(c)

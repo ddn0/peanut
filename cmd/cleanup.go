@@ -29,7 +29,7 @@ func runCleanup(cmd *cobra.Command, args []string) error {
 		lw := logwriter.NewColorWriter("")
 		defer lw.Flush()
 		opt := cleanupOpt{
-			RemoveRunning: viper.GetBool("removeRunning"),
+			RemoveRunning: viper.GetBool("remove-running"),
 		}
 		res, err := cleanup(opt)
 		if err != nil {
@@ -222,6 +222,6 @@ func init() {
 	flags := c.Flags()
 
 	RootCmd.AddCommand(c)
-	flags.Bool("removeRunning", false, "Try to remove running containers too")
+	flags.Bool("remove-running", false, "Try to remove running containers too")
 	flags.Duration("timeout", 30*time.Second, "Duration to wait until declaring failure")
 }

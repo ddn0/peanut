@@ -58,7 +58,7 @@ func runAddDir(cmd *cobra.Command, args []string) error {
 		})
 	}
 
-	return nil
+	return writeConf(cfg)
 }
 
 func init() {

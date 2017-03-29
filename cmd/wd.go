@@ -46,7 +46,11 @@ func runWd(cmd *cobra.Command, args []string) error {
 					score[dir] += len(arg) + 1
 				}
 			}
-			dir = filepath.Dir(dir)
+			next := filepath.Dir(dir)
+			if dir == next {
+				break
+			}
+			dir = next
 		}
 	}
 

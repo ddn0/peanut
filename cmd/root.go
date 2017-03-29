@@ -41,11 +41,10 @@ func init() {
 	c := RootCmd
 	flags := c.PersistentFlags()
 
-	flags.StringVar(&cfgFile, "config", "", "config file (default is $HOME/.peanut/config.yaml)")
+	flags.StringVar(&cfgFile, "config", "", "Config file (default is $HOME/.peanut/config.yaml)")
 	flags.Bool("verbose", false, "Print more output")
-	flags.String("pdir", filepath.Join(configDir(), "dir"), "Path to package directory file")
-	flags.String("dockerConf", filepath.Join(os.Getenv("HOME"), ".docker", "config.json"), "Path to docker auth file")
-	flags.Int("maxConcurrent", 8, "Maximum number of concurrent operations to attempt")
+	flags.String("dir", filepath.Join(configDir(), "dir"), "Path to package directory file")
+	flags.Int("max-concurrent", 8, "Maximum number of concurrent operations to attempt")
 	flags.Duration("timeout", 5*time.Minute, "Timeout")
 }
 

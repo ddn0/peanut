@@ -29,7 +29,7 @@ func prettySummary(status []Status) error {
 				Commit: "None",
 			}
 
-			if len(s.LastN) >= 0 {
+			if len(s.LastN) > 0 {
 				last = s.LastN[0]
 			}
 
