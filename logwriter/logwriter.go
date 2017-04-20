@@ -56,8 +56,6 @@ func (a *LogWriter) Write(p []byte) (n int, err error) {
 }
 
 func (a *LogWriter) Printf(format string, args ...interface{}) error {
-	a.lock.Lock()
-	defer a.lock.Unlock()
 	s := fmt.Sprintf(format, args...)
 	_, err := a.Write([]byte(s))
 	return err
