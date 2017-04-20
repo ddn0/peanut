@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -39,6 +40,17 @@ func runWd(cmd *cobra.Command, args []string) error {
 				score[dir] += 1
 			}
 		}
+
+		// Add end-of-line token to find exact matches
+		sdir := filepath.ToSlash(dir) + "/"
+
+		for _, arg := range args {
+			p := path.Clean("/"+arg) + "/"
+			if strings.Index(sdir, p) >= 0 {
+				score[dir] += len(arg) + 1
+			}
+		}
+
 		for len(dir) > 0 {
 			b := filepath.Base(dir)
 			for _, arg := range args {
